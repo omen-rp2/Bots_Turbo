@@ -43,3 +43,6 @@ The GitHub Pages website sets apiBase to the public `/omen` URL in both portal-c
 `node --test tests/omen-portal.test.mjs`
 
 Tests use isolated in-memory data and mock Discord. Live OAuth, channel delivery and role hierarchy require the configured real bot and a user-approved real application. No live member application is created by tests.
+
+## Replacing the Discord application
+Set DISCORD_CLIENT_ID=1565316709253128294. DISCORD_CLIENT_SECRET must be from that same application; DISCORD_BOT_TOKEN must be its freshly reset bot token. The public OAuth callback remains unchanged and must be added in the new application. Never commit either secret. OAuth readiness now also requires the connected bot application ID to match the configured client ID.
