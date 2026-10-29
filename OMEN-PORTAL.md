@@ -46,3 +46,10 @@ Tests use isolated in-memory data and mock Discord. Live OAuth, channel delivery
 
 ## Replacing the Discord application
 Set DISCORD_CLIENT_ID=1565316709253128294. DISCORD_CLIENT_SECRET must be from that same application; DISCORD_BOT_TOKEN must be its freshly reset bot token. The public OAuth callback remains unchanged and must be added in the new application. Never commit either secret. OAuth readiness now also requires the connected bot application ID to match the configured client ID.
+
+## OMEN v2: recovery, branding and receipts
+The current integration is Bots_Turbo/OMEN-v2. Welcome notices are queued only for GuildMemberAdd; website sign-in never posts a channel welcome. A new application queues a branded pending DM, and final notices use orange embeds, the OMEN artwork and account buttons. The bot avatar/banner are applied from omen-assets/ per bot identity; the former NEXUS profile override is removed. Presence and shared notification branding now use OMEN.
+
+The review list defaults to all states, reports per-state counts and refreshes after authentication. It recovers trusted bot application messages and full attached answers from up to 1,000 recent review-channel messages. Review decisions and reasons in the channel are restored after local state loss. The accepted Discord role is also authoritative evidence: it blocks resubmission, reconstructs an accepted account state if necessary and is never removed just because local records are absent. No welcome is emitted during recovery. Recovered requests get the new review layout, and current pending requests can receive their missing private receipt.
+
+Discord history is a recovery source, not a replacement for proper database retention: keep DATABASE_URL or a Railway volume configured. The owner panel reports whether durable storage is configured and whether review history could be read. Deleting review messages or removing the accepted role also removes those recovery sources. Read Message History and Attach Files must be allowed in the review channel.

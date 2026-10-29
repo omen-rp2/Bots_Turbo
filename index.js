@@ -531,18 +531,7 @@ async function startBot(){
   client.once(Events.ClientReady,async c=>{
     console.log(`Discord bot ready as ${c.user.tag}`);
     try {
-      const db=await readDB();
-      if(db.settings.nexusBotProfileVersion!==4){
-        const operations=[
-          ['username',()=>c.user.username==='NEXUS'?Promise.resolve():c.user.setUsername('NEXUS')],
-          ['avatar',async()=>c.user.setAvatar(await fs.readFile(new URL('./nexus-logo.png',import.meta.url)))],
-          ['banner',async()=>c.user.setBanner(await fs.readFile(new URL('./nexus-banner.png',import.meta.url)))],
-          ['nickname',async()=>{const guild=await c.guilds.fetch(IDS.GUILD_ID);const me=await guild.members.fetchMe();if(me.nickname&&me.nickname!=='NEXUS')await me.setNickname('NEXUS');}]
-        ];
-        const results=await Promise.allSettled(operations.map(async([label,run])=>{try{await run();}catch(error){throw new Error(label+': '+error.message);}}));
-        for(const result of results)if(result.status==='rejected')console.warn('[NEXUS profile]',result.reason.message);
-        if(results.every(result=>result.status==='fulfilled'))await mutate(state=>{state.settings.nexusBotProfileVersion=4;});
-      }
+      await omen.updateProfile(c);
       console.log(`[${BUILD_ID}] Bot ${c.user.id}; support audio ${SUPPORT_AUDIO_FILE}`);
     }catch(error){console.warn('NEXUS profile update failed:',error.message);}
   });
