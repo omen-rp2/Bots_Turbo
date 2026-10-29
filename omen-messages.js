@@ -4,6 +4,7 @@ const button=(label,hash)=>({type:2,style:5,label,url:SITE+hash});
 const embed=(title,description)=>({author:{name:'OMEN ROLEPLAY',icon_url:OMEN_ART.logo},title,description,color:0xff792f,image:{url:OMEN_ART.banner},footer:{text:'OMEN • حكايتك تبدأ هنا'},timestamp:new Date().toISOString()});
 export function omenNotice(kind,{application:a,id,joinedAt}={}){
  let e,components;
+ if(kind==='account'){e=embed('حسابك في أومن جاهز 🟠',`أهلًا <@${id}>، ده أول تسجيل ليك في موقع أومن.\nاقرأ القوانين وقدّم على السيرفر، وتابع حالة طلبك من حسابك.`);components=[button('قوانين الرول بلاي','#rules'),button('ابدأ التقديم','#apply')];e.footer={text:'OMEN • حساب الموقع'};}
  if(kind==='welcome'){e=embed('نورت أومن 🟠',`أهلًا <@${id}>، سعيدين إنك بقيت جزء من مدينتنا.\n\nاقرأ القوانين، جهّز شخصيتك، وابدأ حكاية تستاهل تتحكي.`);components=[button('قدّم على السيرفر','#apply'),button('اعرف أومن والقوانين','#about')];}
  if(kind==='pending'){e=embed('استلمنا تقديمك ⏳','طلبك وصل وبقى **قيد المراجعة**.\nمش محتاج مقابلة صوتية. لما يتاخد القرار هتلاقيه على الموقع، وهنبعتلك هنا كمان.');e.fields=[{name:'رقم الطلب',value:`#${a.id}`,inline:true},{name:'الحالة',value:'قيد المراجعة',inline:true}];components=[button('تابع حالة طلبك','#account')];}
  if(kind==='accepted'){e=embed('أهلًا بيك في المدينة ✓','مبروك، **تم قبول تقديمك في أومن**.\nجهّز شخصيتك وراجع القوانين قبل أول دخول. مستنيين حكايتك.');e.fields=[{name:'رقم الطلب',value:`#${a.id}`,inline:true},{name:'الحالة',value:'مقبول',inline:true}];components=[button('دخول السيرفر','#queue'),button('حالة طلبك','#account')];}
