@@ -1,3 +1,4 @@
+import {installOmenPortal,OMEN} from './omen-portal.js';
 import { installSeasonReset } from './season-reset.js';
 import {reviewApplication, reviewState, reviewDiscordText} from './ai-review.js';
 import {installMemberWelcome} from './member-welcome.js';
@@ -526,6 +527,7 @@ async function startBot(){
   });
   installSupportAnnouncements(client,IDS.GUILD_ID,frontendUrl);
   installMemberWelcome(client,{guildId:IDS.GUILD_ID,frontendUrl});
+  omen.bind(client);
   client.once(Events.ClientReady,async c=>{
     console.log(`Discord bot ready as ${c.user.tag}`);
     try {
@@ -671,7 +673,7 @@ const app=express();
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const frontendUrl=resolveFrontendUrl(process.env.FRONTEND_URL);
 const frontendOrigin=(()=>{try{return new URL(frontendUrl).origin}catch{return frontendUrl}})();
-const allowedOrigins=[process.env.CORS_ORIGIN,frontendOrigin].filter(Boolean);
+const allowedOrigins=[process.env.CORS_ORIGIN,frontendOrigin,new URL(OMEN.site).origin].filter(Boolean);
 
 app.disable('x-powered-by');
 app.use(cors({
@@ -683,6 +685,7 @@ app.use(cors({
   allowedHeaders:['Content-Type','Authorization']
 }));
 app.use(express.json({limit:'1mb'}));
+const omen=installOmenPortal({app,auth,readDB,mutate,getClient:()=>client,clientId:IDS.CLIENT_ID,apiURL:API_PUBLIC_URL,cookie,oauthState});
 
 const questions=[
   'اشرح معنى RDM واديني مثال.',
@@ -748,6 +751,8 @@ app.get('/auth/discord',(req,res)=>{
 
 app.get('/auth/discord/callback',asyncRoute(async(req,res)=>{
   const cookies=parseCookies(req);
+  const omenLogin=!!req.query.state&&cookies.omen_portal===req.query.state;
+  const callbackFrontend=omenLogin?OMEN.site.replace(/\/$/,''):frontendUrl;
   if(!req.query.code||!req.query.state||cookies.turbo_oauth_state!==req.query.state) return res.status(400).send('Invalid OAuth state.');
   res.setHeader('Set-Cookie',cookie('turbo_oauth_state','',0));
   const body=new URLSearchParams({
@@ -761,19 +766,28 @@ app.get('/auth/discord/callback',asyncRoute(async(req,res)=>{
   let tok={};
   try{ tok=JSON.parse(tokenText); }catch{
     console.error('Discord OAuth token returned non-JSON:',tr.status,tokenText.slice(0,180));
-    return res.redirect(`${frontendUrl}/#login_error=discord_temporarily_unavailable`);
+    return res.redirect(`${callbackFrontend}/#login_error=discord_temporarily_unavailable`);
   }
   if(!tr.ok||!tok.access_token){
     console.error('Discord OAuth token failed:',tr.status,tok.error||tok.error_description||'unknown');
-    return res.redirect(`${frontendUrl}/#login_error=discord_oauth_failed`);
+    return res.redirect(`${callbackFrontend}/#login_error=discord_oauth_failed`);
   }
   const ur=await fetch('https://discord.com/api/users/@me',{headers:{authorization:`Bearer ${tok.access_token}`,accept:'application/json'}});
   const userText=await ur.text();
-  let u={}; try{u=JSON.parse(userText)}catch{console.error('Discord user returned non-JSON:',ur.status,userText.slice(0,180));return res.redirect(`${frontendUrl}/#login_error=discord_temporarily_unavailable`)}
-  if(!ur.ok||!u.id) return res.redirect(`${frontendUrl}/#login_error=discord_user_failed`);
+  let u={}; try{u=JSON.parse(userText)}catch{console.error('Discord user returned non-JSON:',ur.status,userText.slice(0,180));return res.redirect(`${callbackFrontend}/#login_error=discord_temporarily_unavailable`)}
+  if(!ur.ok||!u.id) return res.redirect(`${callbackFrontend}/#login_error=discord_user_failed`);
+  if(omenLogin){
+    res.setHeader('Set-Cookie',[cookie('turbo_oauth_state','',0),cookie('omen_portal','',0)]);
+    if((process.env.SESSION_SECRET||'').length<32)return res.redirect(OMEN.site+'#auth_error=unavailable');
+    let member;try{member=await omen.service.requireMember(u.id)}catch(e){return res.redirect(OMEN.site+'#auth_error='+(e.status===403?'join':'unavailable'))}
+    const token=signToken({id:u.id,username:u.username,globalName:u.global_name,avatar:u.avatar,roles:[]});
+    await omen.service.onboard(u.id,member.joinedTimestamp);
+    res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');
+    return res.redirect(OMEN.site+'#omen_token='+encodeURIComponent(token));
+  }
   const roles=await getMemberRoles(u.id);
   const token=signToken({id:u.id,username:u.username,globalName:u.global_name,avatar:u.avatar,roles});
-  res.redirect(`${frontendUrl}/#token=${encodeURIComponent(token)}`);
+  res.redirect(`${callbackFrontend}/#token=${encodeURIComponent(token)}`);
   community.register(u,cookies.legend_oauth_lang==='en'?'en':'ar').catch(error=>console.error('Welcome notification failed:',error.message));
 }));
 
