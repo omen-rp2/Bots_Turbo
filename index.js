@@ -1,3 +1,4 @@
+import {installOmenTickets} from './omen-tickets.js';
 import {installOmenPortal,OMEN} from './omen-portal.js';
 import { installSeasonReset } from './season-reset.js';
 import {reviewApplication, reviewState, reviewDiscordText} from './ai-review.js';
@@ -528,6 +529,7 @@ async function startBot(){
   installSupportAnnouncements(client,IDS.GUILD_ID,frontendUrl);
   installMemberWelcome(client,{guildId:IDS.GUILD_ID,frontendUrl});
   omen.bind(client);
+  tickets.bind(client);
   client.once(Events.ClientReady,async c=>{
     console.log(`Discord bot ready as ${c.user.tag}`);
     try {
@@ -675,6 +677,7 @@ app.use(cors({
 }));
 app.use(express.json({limit:'1mb'}));
 const omen=installOmenPortal({app,auth,readDB,mutate,getClient:()=>client,clientId:IDS.CLIENT_ID,apiURL:API_PUBLIC_URL,cookie,oauthState});
+const tickets=installOmenTickets({app,readDB,mutate,getClient:()=>client});
 
 const questions=[
   'اشرح معنى RDM واديني مثال.',
